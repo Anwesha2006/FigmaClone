@@ -11,6 +11,8 @@ interface CanvasStore extends CanvasState {
   setPanOffset: (offset: { x: number; y: number }) => void
   moveShape: (id: string, x: number, y: number) => void
   resizeShape: (id: string, width: number, height: number) => void
+  setShapes: (shapes: Shape[]) => void
+  duplicateShape: (id: string) => void
 }
 
 export const useCanvasStore = create<CanvasStore>((set) => ({
@@ -47,6 +49,7 @@ export const useCanvasStore = create<CanvasStore>((set) => ({
 
   setPanOffset: (offset) => set({ panOffset: offset }),
 
+  
   moveShape: (id, x, y) =>
     set((state) => ({
       shapes: state.shapes.map((shape) =>
@@ -60,4 +63,23 @@ export const useCanvasStore = create<CanvasStore>((set) => ({
         shape.id === id ? { ...shape, width: Math.max(10, width), height: Math.max(10, height) } : shape
       ),
     })),
+  setShapes: (shapes) => set({ shapes }),
+
+  duplicateShape: (id) =>
+    set((state) => {
+      const shapeToDuplicate = state.shapes.find((s) => s.id === id)
+      if (!shapeToDuplicate) return state
+
+      const newShape: Shape = {
+        ...shapeToDuplicate,
+        id: Math.random().toString(36).substr(2, 9),
+        x: shapeToDuplicate.x + 20,
+        y: shapeToDuplicate.y + 20,
+      }
+
+      return {
+        shapes: [...state.shapes, newShape],
+        selectedId: newShape.id,
+      }
+    }),
 }))

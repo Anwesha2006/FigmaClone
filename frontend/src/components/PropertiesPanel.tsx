@@ -4,7 +4,7 @@ import { useCanvasStore } from "@/src/lib/store"
 import { Trash2, Copy, RotateCw } from "lucide-react"
 
 export function PropertiesPanel() {
-  const { shapes, selectedId, updateShape, deleteShape } = useCanvasStore()
+  const { shapes, selectedId, updateShape, deleteShape, duplicateShape } = useCanvasStore()
   const selectedShape = shapes.find((s) => s.id === selectedId)
 
   if (!selectedShape) {
@@ -43,7 +43,7 @@ export function PropertiesPanel() {
           </h3>
           <div className="flex gap-1">
             <button
-              onClick={() => {}}
+              onClick={() => duplicateShape(selectedShape.id)}
               className="flex h-7 w-7 items-center justify-center rounded text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
               title="Duplicate"
             >
@@ -144,72 +144,137 @@ export function PropertiesPanel() {
           </div>
         </div>
 
-        <div className="mb-4">
-          <h4 className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            Fill
-          </h4>
-          <div className="flex items-center gap-2">
-            <input
-              type="color"
-              value={selectedShape.fill}
-              onChange={(e) =>
-                updateShape(selectedShape.id, { fill: e.target.value })
-              }
-              className="h-8 w-8 cursor-pointer overflow-hidden rounded-md border border-input bg-transparent"
-            />
-            <input
-              type="text"
-              value={selectedShape.fill}
-              onChange={(e) =>
-                updateShape(selectedShape.id, { fill: e.target.value })
-              }
-              className="h-8 flex-1 rounded-md border border-input bg-background px-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring transition-colors"
-            />
-          </div>
-        </div>
+        {selectedShape.type === "text" ? (
+          <>
+            <div className="mb-4">
+              <h4 className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Text
+              </h4>
+              <textarea
+                value={selectedShape.text || ""}
+                onChange={(e) => updateShape(selectedShape.id, { text: e.target.value })}
+                className="w-full rounded-md border border-input bg-background px-2 py-1 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring transition-colors resize-y min-h-[60px]"
+                placeholder="Enter text..."
+              />
+            </div>
+            <div className="mb-4">
+              <h4 className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Typography
+              </h4>
+              <div className="grid grid-cols-2 gap-2 mb-2">
+                <div>
+                  <label className="mb-1 block text-xs text-muted-foreground">Size</label>
+                  <input
+                    type="number"
+                    value={selectedShape.fontSize || 16}
+                    onChange={(e) => updateShape(selectedShape.id, { fontSize: Number(e.target.value) })}
+                    className="h-8 w-full rounded-md border border-input bg-background px-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring transition-colors"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs text-muted-foreground">Align</label>
+                  <select
+                    value={selectedShape.textAlign || "left"}
+                    onChange={(e) => updateShape(selectedShape.id, { textAlign: e.target.value as any })}
+                    className="h-8 w-full rounded-md border border-input bg-background px-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring transition-colors"
+                  >
+                    <option value="left">Left</option>
+                    <option value="center">Center</option>
+                    <option value="right">Right</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div className="mb-4">
+              <h4 className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Color
+              </h4>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={selectedShape.fill === "transparent" ? "#ffffff" : selectedShape.fill}
+                  onChange={(e) => updateShape(selectedShape.id, { fill: e.target.value })}
+                  className="h-8 w-8 cursor-pointer overflow-hidden rounded-md border border-input bg-transparent"
+                />
+                <input
+                  type="text"
+                  value={selectedShape.fill === "transparent" ? "#ffffff" : selectedShape.fill}
+                  onChange={(e) => updateShape(selectedShape.id, { fill: e.target.value })}
+                  className="h-8 flex-1 rounded-md border border-input bg-background px-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring transition-colors"
+                />
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="mb-4">
+              <h4 className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Fill
+              </h4>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={selectedShape.fill}
+                  onChange={(e) =>
+                    updateShape(selectedShape.id, { fill: e.target.value })
+                  }
+                  className="h-8 w-8 cursor-pointer overflow-hidden rounded-md border border-input bg-transparent"
+                />
+                <input
+                  type="text"
+                  value={selectedShape.fill}
+                  onChange={(e) =>
+                    updateShape(selectedShape.id, { fill: e.target.value })
+                  }
+                  className="h-8 flex-1 rounded-md border border-input bg-background px-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring transition-colors"
+                />
+              </div>
+            </div>
 
-        <div className="mb-4">
-          <h4 className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            Stroke
-          </h4>
-          <div className="flex items-center gap-2">
-            <input
-              type="color"
-              value={selectedShape.stroke}
-              onChange={(e) =>
-                updateShape(selectedShape.id, { stroke: e.target.value })
-              }
-              className="h-8 w-8 cursor-pointer overflow-hidden rounded-md border border-input bg-transparent"
-            />
-            <input
-              type="text"
-              value={selectedShape.stroke}
-              onChange={(e) =>
-                updateShape(selectedShape.id, { stroke: e.target.value })
-              }
-              className="h-8 flex-1 rounded-md border border-input bg-background px-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring transition-colors"
-            />
-          </div>
-        </div>
+            <div className="mb-4">
+              <h4 className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Stroke
+              </h4>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={selectedShape.stroke}
+                  onChange={(e) =>
+                    updateShape(selectedShape.id, { stroke: e.target.value })
+                  }
+                  className="h-8 w-8 cursor-pointer overflow-hidden rounded-md border border-input bg-transparent"
+                />
+                <input
+                  type="text"
+                  value={selectedShape.stroke}
+                  onChange={(e) =>
+                    updateShape(selectedShape.id, { stroke: e.target.value })
+                  }
+                  className="h-8 flex-1 rounded-md border border-input bg-background px-2 text-sm text-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring transition-colors"
+                />
+              </div>
+            </div>
 
-        <div>
-          <h4 className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            Stroke Width
-          </h4>
-          <input
-            type="range"
-            min="0"
-            max="20"
-            value={selectedShape.strokeWidth}
-            onChange={(e) =>
-              updateShape(selectedShape.id, { strokeWidth: Number(e.target.value) })
-            }
-            className="w-full accent-primary"
-          />
-          <div className="mt-1 text-xs text-muted-foreground">
-            {selectedShape.strokeWidth}px
-          </div>
-        </div>
+            <div>
+              <h4 className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Stroke Width
+              </h4>
+              <input
+                type="range"
+                min="0"
+                max="20"
+                value={selectedShape.strokeWidth}
+                onChange={(e) =>
+                  updateShape(selectedShape.id, { strokeWidth: Number(e.target.value) })
+                }
+                className="w-full accent-primary"
+              />
+              <div className="mt-1 text-xs text-muted-foreground">
+                {selectedShape.strokeWidth}px
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </aside>
   )

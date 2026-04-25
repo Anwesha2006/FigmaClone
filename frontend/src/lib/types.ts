@@ -1,6 +1,6 @@
-export type ShapeType = "rectangle" | "circle"
+export type ShapeType = "rectangle" | "circle" | "text" | "line" | "arrow" | "triangle" | "star"
 
-export type Tool = "select" | "move" | "rectangle" | "circle" | "text"
+export type Tool = "select" | "move" | "rectangle" | "circle" | "text" | "line" | "arrow" | "triangle" | "star"
 
 export interface Shape {
   id: string
@@ -13,6 +13,10 @@ export interface Shape {
   stroke: string
   strokeWidth: number
   rotation: number
+  text?: string
+  fontSize?: number
+  fontFamily?: string
+  textAlign?: "left" | "center" | "right"
 }
 
 export interface CanvasState {

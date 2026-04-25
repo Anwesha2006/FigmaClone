@@ -1,9 +1,10 @@
 "use client"
 
-import { useRef, useState, useCallback, useEffect } from "react"
+import React, { useRef, useState, useCallback, useEffect } from "react"
 import { useCanvasStore } from "@/src/lib/store"
 import { generateId } from "@/src/lib/utils"
 import type { Shape } from "@/src/lib/types"
+import { useAutoSave } from "../hooks/useAutosave"
 
 interface DragState {
   isDragging: boolean
@@ -24,6 +25,7 @@ interface ResizeState {
   shapeStartY: number
 }
 
+
 export function Canvas() {
   const canvasRef = useRef<HTMLDivElement>(null)
   const {
@@ -37,8 +39,10 @@ export function Canvas() {
     moveShape,
     resizeShape,
     setPanOffset,
+    updateShape,
   } = useCanvasStore()
-
+const fileId = ""  // temporary empty string until you add file routing
+const saveStatus = useAutoSave(fileId)
   const [dragState, setDragState] = useState<DragState>({
     isDragging: false,
     startX: 0,
@@ -60,6 +64,7 @@ export function Canvas() {
 
   const [isPanning, setIsPanning] = useState(false)
   const [panStart, setPanStart] = useState({ x: 0, y: 0 })
+  const [editingTextId, setEditingTextId] = useState<string | null>(null)
 
   const getCanvasCoordinates = useCallback(
     (clientX: number, clientY: number) => {
@@ -73,33 +78,52 @@ export function Canvas() {
     [zoom, panOffset]
   )
 
-  const handleCanvasClick = useCallback(
+  const handleCanvasMouseDown = useCallback(
     (e: React.MouseEvent) => {
-      if (e.target !== canvasRef.current) return
+      setEditingTextId(null)
+      if (activeTool === "move" || e.button === 1) {
+        setIsPanning(true)
+        setPanStart({ x: e.clientX, y: e.clientY })
+      } else if (["rectangle", "circle", "text", "line", "arrow", "triangle", "star"].includes(activeTool)) {
+        const coords = getCanvasCoordinates(e.clientX, e.clientY)
+        const isText = activeTool === "text"
+        const isLineOrArrow = activeTool === "line" || activeTool === "arrow"
+        
+        let width = 100
+        let height = 100
+        if (isText) { width = 200; height = 50; }
+        if (isLineOrArrow) { height = 10; }
 
-      const coords = getCanvasCoordinates(e.clientX, e.clientY)
-
-      if (activeTool === "rectangle" || activeTool === "circle") {
         const newShape: Shape = {
           id: generateId(),
-          type: activeTool,
-          x: coords.x - 50,
-          y: coords.y - 50,
-          width: 100,
-          height: 100,
-          fill: "#5B8DEF",
-          stroke: "#3B6FCF",
-          strokeWidth: 2,
+          type: activeTool as any,
+          x: isText ? coords.x : coords.x - width / 2,
+          y: isText ? coords.y : coords.y - height / 2,
+          width,
+          height,
+          fill: isText ? "currentColor" : isLineOrArrow ? "transparent" : "#5B8DEF",
+          stroke: isText ? "transparent" : "#3B6FCF",
+          strokeWidth: isText ? 0 : 2,
           rotation: 0,
+          ...(isText && {
+            text: "Double click to edit",
+            fontSize: 16,
+            fontFamily: "Inter, sans-serif",
+            textAlign: "left",
+          }),
         }
+
         addShape(newShape)
+        useCanvasStore.getState().setActiveTool("select")
+        if (isText) {
+          setEditingTextId(newShape.id)
+        }
       } else if (activeTool === "select") {
         selectShape(null)
       }
     },
     [activeTool, addShape, selectShape, getCanvasCoordinates]
   )
-
   const handleShapeMouseDown = useCallback(
     (e: React.MouseEvent, shape: Shape) => {
       e.stopPropagation()
@@ -206,15 +230,7 @@ export function Canvas() {
     setIsPanning(false)
   }, [])
 
-  const handleCanvasMouseDown = useCallback(
-    (e: React.MouseEvent) => {
-      if (activeTool === "move" || e.button === 1) {
-        setIsPanning(true)
-        setPanStart({ x: e.clientX, y: e.clientY })
-      }
-    },
-    [activeTool]
-  )
+
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -238,6 +254,12 @@ export function Canvas() {
       }
       if (e.key === "t" || e.key === "T") {
         useCanvasStore.getState().setActiveTool("text")
+      }
+      if (e.key === "l" && !e.shiftKey) {
+        useCanvasStore.getState().setActiveTool("line")
+      }
+      if (e.key === "L" || (e.key === "l" && e.shiftKey)) {
+        useCanvasStore.getState().setActiveTool("arrow")
       }
     }
 
@@ -299,8 +321,7 @@ export function Canvas() {
   return (
     <div
       ref={canvasRef}
-      className="relative flex-1 overflow-hidden bg-canvas"
-      onClick={handleCanvasClick}
+      className="relative h-full w-full overflow-hidden bg-canvas"
       onMouseDown={handleCanvasMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
@@ -333,6 +354,7 @@ export function Canvas() {
             return (
               <div
                 key={shape.id}
+                data-shape="true"
                 className="absolute transition-shadow"
                 style={{
                   left: shape.x,
@@ -359,6 +381,7 @@ export function Canvas() {
             return (
               <div
                 key={shape.id}
+                data-shape="true"
                 className="absolute rounded-full transition-shadow"
                 style={{
                   left: shape.x,
@@ -380,6 +403,182 @@ export function Canvas() {
             )
           }
 
+          if (shape.type === "text") {
+            const isEditing = editingTextId === shape.id
+            return (
+              <div
+                key={shape.id}
+                data-shape="true"
+                className="absolute transition-shadow flex items-start"
+                style={{
+                  left: shape.x,
+                  top: shape.y,
+                  width: shape.width,
+                  height: shape.height,
+                  transform: `rotate(${shape.rotation}deg)`,
+                  cursor: activeTool === "select" ? "move" : "default",
+                  boxShadow: isSelected && !isEditing
+                    ? "0 0 0 2px oklch(0.65 0.2 250)"
+                    : "none",
+                }}
+                onMouseDown={(e) => handleShapeMouseDown(e, shape)}
+                onDoubleClick={(e) => {
+                  e.stopPropagation()
+                  setEditingTextId(shape.id)
+                }}
+              >
+                {isEditing ? (
+                  <textarea
+                    autoFocus
+                    className="w-full h-full bg-transparent resize-none outline-none"
+                    style={{
+                      color: shape.fill,
+                      fontSize: `${shape.fontSize || 16}px`,
+                      fontFamily: shape.fontFamily || "Inter, sans-serif",
+                      textAlign: shape.textAlign as any || "left",
+                    }}
+                    value={shape.text || ""}
+                    onChange={(e) => updateShape(shape.id, { text: e.target.value })}
+                    onBlur={() => setEditingTextId(null)}
+                    onMouseDown={(e) => e.stopPropagation()}
+                  />
+                ) : (
+                  <div
+                    className="w-full h-full select-none"
+                    style={{
+                      color: shape.fill,
+                      fontSize: `${shape.fontSize || 16}px`,
+                      fontFamily: shape.fontFamily || "Inter, sans-serif",
+                      textAlign: shape.textAlign as any || "left",
+                      whiteSpace: "pre-wrap",
+                      wordBreak: "break-word",
+                    }}
+                  >
+                    {shape.text || "Double click to edit"}
+                  </div>
+                )}
+                {isSelected && !isEditing && renderResizeHandles(shape)}
+              </div>
+            )
+          }
+
+          if (shape.type === "triangle") {
+            return (
+              <div
+                key={shape.id}
+                data-shape="true"
+                className="absolute transition-shadow"
+                style={{
+                  left: shape.x, top: shape.y, width: shape.width, height: shape.height,
+                  transform: `rotate(${shape.rotation}deg)`,
+                  cursor: activeTool === "select" ? "move" : "default",
+                  boxShadow: isSelected ? "0 0 0 2px oklch(0.65 0.2 250)" : "none",
+                }}
+                onMouseDown={(e) => handleShapeMouseDown(e, shape)}
+              >
+                <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
+                  <polygon
+                    points="50,0 100,100 0,100"
+                    fill={shape.fill}
+                    stroke={shape.stroke}
+                    strokeWidth={shape.strokeWidth}
+                    vectorEffect="non-scaling-stroke"
+                  />
+                </svg>
+                {isSelected && renderResizeHandles(shape)}
+              </div>
+            )
+          }
+
+          if (shape.type === "star") {
+            return (
+              <div
+                key={shape.id}
+                data-shape="true"
+                className="absolute transition-shadow"
+                style={{
+                  left: shape.x, top: shape.y, width: shape.width, height: shape.height,
+                  transform: `rotate(${shape.rotation}deg)`,
+                  cursor: activeTool === "select" ? "move" : "default",
+                  boxShadow: isSelected ? "0 0 0 2px oklch(0.65 0.2 250)" : "none",
+                }}
+                onMouseDown={(e) => handleShapeMouseDown(e, shape)}
+              >
+                <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
+                  <polygon
+                    points="50,0 61,35 98,35 68,57 79,91 50,70 21,91 32,57 2,35 39,35"
+                    fill={shape.fill}
+                    stroke={shape.stroke}
+                    strokeWidth={shape.strokeWidth}
+                    vectorEffect="non-scaling-stroke"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                {isSelected && renderResizeHandles(shape)}
+              </div>
+            )
+          }
+
+          if (shape.type === "line") {
+            return (
+              <div
+                key={shape.id}
+                data-shape="true"
+                className="absolute transition-shadow flex items-center"
+                style={{
+                  left: shape.x, top: shape.y, width: shape.width, height: Math.max(10, shape.height),
+                  transform: `rotate(${shape.rotation}deg)`,
+                  cursor: activeTool === "select" ? "move" : "default",
+                  boxShadow: isSelected ? "0 0 0 2px oklch(0.65 0.2 250)" : "none",
+                }}
+                onMouseDown={(e) => handleShapeMouseDown(e, shape)}
+              >
+                <svg width="100%" height="100%" preserveAspectRatio="none" style={{ overflow: "visible" }}>
+                  <line
+                    x1="0" y1="50%" x2="100%" y2="50%"
+                    stroke={shape.stroke}
+                    strokeWidth={shape.strokeWidth}
+                    vectorEffect="non-scaling-stroke"
+                  />
+                </svg>
+                {isSelected && renderResizeHandles(shape)}
+              </div>
+            )
+          }
+
+          if (shape.type === "arrow") {
+            return (
+              <div
+                key={shape.id}
+                data-shape="true"
+                className="absolute transition-shadow flex items-center"
+                style={{
+                  left: shape.x, top: shape.y, width: shape.width, height: Math.max(10, shape.height),
+                  transform: `rotate(${shape.rotation}deg)`,
+                  cursor: activeTool === "select" ? "move" : "default",
+                  boxShadow: isSelected ? "0 0 0 2px oklch(0.65 0.2 250)" : "none",
+                }}
+                onMouseDown={(e) => handleShapeMouseDown(e, shape)}
+              >
+                <svg width="100%" height="100%" preserveAspectRatio="none" style={{ overflow: "visible" }}>
+                  <defs>
+                    <marker id={`arrow-${shape.id}`} markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+                      <path d="M0,0 L0,6 L9,3 z" fill={shape.stroke} />
+                    </marker>
+                  </defs>
+                  <line
+                    x1="0" y1="50%" x2="100%" y2="50%"
+                    stroke={shape.stroke}
+                    strokeWidth={shape.strokeWidth}
+                    markerEnd={`url(#arrow-${shape.id})`}
+                    vectorEffect="non-scaling-stroke"
+                  />
+                </svg>
+                {isSelected && renderResizeHandles(shape)}
+              </div>
+            )
+          }
+
           return null
         })}
       </div>
@@ -393,6 +592,13 @@ export function Canvas() {
           </span>
         </div>
       )}
+      {saveStatus !== "idle" && (
+  <div className="absolute bottom-4 right-4 rounded-lg border border-border bg-toolbar px-3 py-2 text-xs text-muted-foreground shadow-lg">
+    {saveStatus === "saving" && "Saving..."}
+    {saveStatus === "saved" && "Saved ✓"}
+    {saveStatus === "error" && "Save failed"}
+  </div>
+)}
     </div>
   )
 }
