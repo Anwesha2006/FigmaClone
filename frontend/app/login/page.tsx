@@ -2,10 +2,55 @@
 
 import { Mail, Lock, Sparkles, ArrowRight, Github } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
   const router = useRouter();
+  const [formData, setFormData] = useState({ email: "", password: "" });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target;
+    setFormData(prev => ({ ...prev, [id]: value }));
+    setError("");
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    
+    if (!formData.email || !formData.password) {
+      setError("All fields are required");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await fetch("http://localhost:5000/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || "Login failed");
+        return;
+      }
+
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(data.user));
+      router.push("/dashboard");
+    } catch (err) {
+      setError("An error occurred. Please try again.");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen grid lg:grid-cols-2 bg-background text-foreground antialiased selection:bg-primary/20 selection:text-primary">
       {/* Left Column - Branding / Artistic abstract */}
@@ -100,7 +145,13 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <form className="space-y-5" action="#" onSubmit={(e) => { e.preventDefault(); router.push("/dashboard"); }}>
+            <form className="space-y-5" onSubmit={handleSubmit}>
+              {error && (
+                <div className="p-3 bg-red-500/10 border border-red-500/30 text-red-600 rounded-lg text-sm">
+                  {error}
+                </div>
+              )}
+              
               <div className="space-y-2.5">
                 <label className="text-sm font-semibold text-foreground ml-1" htmlFor="email">
                   Email Address
@@ -111,6 +162,8 @@ export default function LoginPage() {
                     id="email" 
                     type="email" 
                     placeholder="name@example.com"
+                    value={formData.email}
+                    onChange={handleInputChange}
                     className="w-full bg-background/50 border border-border focus:border-primary focus:ring-4 focus:ring-primary/10 rounded-xl py-3 pl-12 pr-4 text-foreground placeholder:text-muted-foreground font-medium outline-none transition-all duration-300"
                     required
                   />
@@ -132,6 +185,8 @@ export default function LoginPage() {
                     id="password" 
                     type="password" 
                     placeholder="••••••••"
+                    value={formData.password}
+                    onChange={handleInputChange}
                     className="w-full bg-background/50 border border-border focus:border-primary focus:ring-4 focus:ring-primary/10 rounded-xl py-3 pl-12 pr-4 text-foreground placeholder:text-muted-foreground font-medium outline-none transition-all duration-300"
                     required
                   />
@@ -139,10 +194,10 @@ export default function LoginPage() {
               </div>
 
               <div className="pt-2">
-                <button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-3.5 rounded-xl shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all duration-300 flex items-center justify-center gap-2 group relative overflow-hidden">
+                <button type="submit" disabled={loading} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-3.5 rounded-xl shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all duration-300 flex items-center justify-center gap-2 group relative overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed">
                   <span className="relative z-10 flex items-center gap-2">
-                    Log in
-                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1.5 transition-transform duration-300" />
+                    {loading ? "Logging in..." : "Log in"}
+                    {!loading && <ArrowRight className="w-4 h-4 group-hover:translate-x-1.5 transition-transform duration-300" />}
                   </span>
                   {/* Sweep highlight effect on hover */}
                   <div className="absolute inset-0 h-full w-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-[150%] group-hover:translate-x-[150%] transition-transform duration-700 ease-out" />
@@ -150,6 +205,7 @@ export default function LoginPage() {
               </div>
             </form>
           </div>
+
 
           <p className="text-center text-sm text-muted-foreground font-medium pt-4">
             Don't have an account?{' '}

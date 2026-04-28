@@ -31,24 +31,28 @@ export function useAutoSave(fileId: string) {
     // Start a new 2 second timer
     debounceTimer.current = setTimeout(async () => {
       try {
-        const response = await fetch(`/api/files/${fileId}/canvas`, {
+        const token = localStorage.getItem("token")
+        const response = await fetch(`http://localhost:5000/api/files/${fileId}/canvas`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
+            ...(token ? { "Authorization": `Bearer ${token}` } : {})
           },
           body: JSON.stringify({ canvasData: shapes }),
         })
 
         if (!response.ok) {
-          throw new Error("Failed to save")
+          const errorData = await response.json().catch(() => ({}));
+          console.error("Save failed with status:", response.status, errorData);
+          throw new Error(`Failed to save: ${response.status}`);
         }
 
         setStatus("saved")
 
         // Reset back to idle after 2 seconds
         setTimeout(() => setStatus("idle"), 2000)
-      } catch (err) {
-        console.error("Auto-save error:", err)
+      } catch (err: any) {
+        console.error("Auto-save error details:", err.message)
         setStatus("error")
       }
     }, 2000)

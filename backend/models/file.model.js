@@ -23,6 +23,10 @@ const FileSchema = new mongoose.Schema({
         type: String,
         required: false,
         default: "",
+    },
+    linkSharing: {
+        enabled: { type: Boolean, default: false },
+        role: { type: String, enum: ["viewer", "editor"], default: "viewer" }
     }
 },
 );

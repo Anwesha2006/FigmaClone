@@ -1,5 +1,12 @@
 import { create } from "zustand"
 import type { Shape, Tool, CanvasState } from "./types"
+import * as Y from "yjs"
+
+let yShapesMap: Y.Map<Shape> | null = null;
+
+export const setYShapesMap = (map: Y.Map<Shape> | null) => {
+  yShapesMap = map;
+}
 
 interface CanvasStore extends CanvasState {
   addShape: (shape: Shape) => void
@@ -22,24 +29,32 @@ export const useCanvasStore = create<CanvasStore>((set) => ({
   zoom: 1,
   panOffset: { x: 0, y: 0 },
 
-  addShape: (shape) =>
+  addShape: (shape) => {
+    yShapesMap?.set(shape.id, shape);
     set((state) => ({
       shapes: [...state.shapes, shape],
       selectedId: shape.id,
-    })),
+    }));
+  },
 
-  updateShape: (id, updates) =>
-    set((state) => ({
-      shapes: state.shapes.map((shape) =>
+  updateShape: (id, updates) => {
+    set((state) => {
+      const newShapes = state.shapes.map((shape) =>
         shape.id === id ? { ...shape, ...updates } : shape
-      ),
-    })),
+      );
+      const updatedShape = newShapes.find((s) => s.id === id);
+      if (updatedShape) yShapesMap?.set(id, updatedShape);
+      return { shapes: newShapes };
+    });
+  },
 
-  deleteShape: (id) =>
+  deleteShape: (id) => {
+    yShapesMap?.delete(id);
     set((state) => ({
       shapes: state.shapes.filter((shape) => shape.id !== id),
       selectedId: state.selectedId === id ? null : state.selectedId,
-    })),
+    }));
+  },
 
   selectShape: (id) => set({ selectedId: id }),
 
@@ -50,22 +65,30 @@ export const useCanvasStore = create<CanvasStore>((set) => ({
   setPanOffset: (offset) => set({ panOffset: offset }),
 
   
-  moveShape: (id, x, y) =>
-    set((state) => ({
-      shapes: state.shapes.map((shape) =>
+  moveShape: (id, x, y) => {
+    set((state) => {
+      const newShapes = state.shapes.map((shape) =>
         shape.id === id ? { ...shape, x, y } : shape
-      ),
-    })),
+      );
+      const updatedShape = newShapes.find((s) => s.id === id);
+      if (updatedShape) yShapesMap?.set(id, updatedShape);
+      return { shapes: newShapes };
+    });
+  },
 
-  resizeShape: (id, width, height) =>
-    set((state) => ({
-      shapes: state.shapes.map((shape) =>
+  resizeShape: (id, width, height) => {
+    set((state) => {
+      const newShapes = state.shapes.map((shape) =>
         shape.id === id ? { ...shape, width: Math.max(10, width), height: Math.max(10, height) } : shape
-      ),
-    })),
+      );
+      const updatedShape = newShapes.find((s) => s.id === id);
+      if (updatedShape) yShapesMap?.set(id, updatedShape);
+      return { shapes: newShapes };
+    });
+  },
   setShapes: (shapes) => set({ shapes }),
 
-  duplicateShape: (id) =>
+  duplicateShape: (id) => {
     set((state) => {
       const shapeToDuplicate = state.shapes.find((s) => s.id === id)
       if (!shapeToDuplicate) return state
@@ -77,9 +100,12 @@ export const useCanvasStore = create<CanvasStore>((set) => ({
         y: shapeToDuplicate.y + 20,
       }
 
+      yShapesMap?.set(newShape.id, newShape);
+
       return {
         shapes: [...state.shapes, newShape],
         selectedId: newShape.id,
       }
-    }),
+    })
+  },
 }))

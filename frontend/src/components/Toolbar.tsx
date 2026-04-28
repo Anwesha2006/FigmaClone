@@ -12,7 +12,8 @@ import {
   Triangle,
   Star,
   ArrowRight,
-  ChevronDown
+  ChevronDown,
+  Download
 } from "lucide-react"
 import { useCanvasStore } from "@/src/lib/store"
 import type { Tool } from "@/src/lib/types"
@@ -63,7 +64,9 @@ const SHAPE_TOOLS: { id: Tool; label: string; icon: React.FC<any>; shortcut?: st
 export function Toolbar() {
   const { zoom, setZoom, activeTool, setActiveTool } = useCanvasStore()
   const [isShapeMenuOpen, setIsShapeMenuOpen] = useState(false)
+  const [isExportMenuOpen, setIsExportMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+  const exportRef = useRef<HTMLDivElement>(null)
 
   // Find currently active shape tool, default to rectangle
   const currentShapeTool = SHAPE_TOOLS.find(t => t.id === activeTool) || SHAPE_TOOLS[0]
@@ -74,10 +77,41 @@ export function Toolbar() {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setIsShapeMenuOpen(false)
       }
+      if (exportRef.current && !exportRef.current.contains(event.target as Node)) {
+        setIsExportMenuOpen(false)
+      }
     }
     document.addEventListener("mousedown", handleClickOutside)
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
+
+  const handleExport = async (format: string) => {
+    try {
+      const shapes = useCanvasStore.getState().shapes;
+      const response = await fetch(`http://localhost:5000/api/files/export`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ canvasData: shapes, format, name: "canvas-export" }),
+      });
+      
+      if (!response.ok) throw new Error("Export failed");
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `canvas-export.${format}`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to export canvas");
+    } finally {
+      setIsExportMenuOpen(false);
+    }
+  }
 
   return (
     <div className="absolute left-1/2 top-4 z-10 flex -translate-x-1/2 items-center gap-1 rounded-lg border border-border bg-toolbar p-1 shadow-lg">
@@ -158,6 +192,33 @@ export function Toolbar() {
         >
           <Plus className="h-4 w-4" />
         </button>
+      </div>
+
+      <div className="mx-1 h-5 w-px bg-border" />
+      
+      {/* Export Dropdown */}
+      <div className="relative" ref={exportRef}>
+        <button
+          onClick={() => setIsExportMenuOpen(!isExportMenuOpen)}
+          className="group relative flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground transition-all"
+          title="Export"
+        >
+          <Download className="h-4 w-4" />
+        </button>
+
+        {isExportMenuOpen && (
+          <div className="absolute right-0 top-full mt-1 w-40 rounded-md border border-border bg-popover py-1 shadow-md z-50">
+            <button onClick={() => handleExport('png')} className="flex w-full items-center px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground text-popover-foreground">
+              Export as PNG
+            </button>
+            <button onClick={() => handleExport('svg')} className="flex w-full items-center px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground text-popover-foreground">
+              Export as SVG
+            </button>
+            <button onClick={() => handleExport('pdf')} className="flex w-full items-center px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground text-popover-foreground">
+              Export as PDF
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )

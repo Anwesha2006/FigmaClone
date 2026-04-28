@@ -2,13 +2,16 @@ const express = require("express");
 const router = express.Router();
 
 const ProjectController = require("../controllers/project.controller");
+const protect = require("../middleware/auth.middleware");
 
-router.post("/",  ProjectController.createProject);
+router.post("/", protect, ProjectController.createProject);
 
-router.get("/",  ProjectController.getMyProjects);
+router.get("/", protect, ProjectController.getMyProjects);
 
-router.get("/:id", ProjectController.renameProject);
+router.get("/:id", protect, ProjectController.renameProject);
 
-router.delete("/:id",ProjectController.deleteProject);
+router.delete("/:id", protect, ProjectController.deleteProject);
+
+router.post("/:id/invite", protect, ProjectController.inviteUser);
 
 module.exports = router;

@@ -1,16 +1,58 @@
-import { Sparkles, ArrowRight, X, LayoutGrid, List, ChevronDown, MonitorPlay } from "lucide-react";
+"use client";
+
+import { Sparkles, ArrowRight, X, LayoutGrid, List, ChevronDown, MonitorPlay, FileText } from "lucide-react";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export default function RecentsPage() {
-  const projects = [
-    { title: "Ecommerce UI Design", time: "Edited 4 months ago", category: "blue", type: "design" },
-    { title: "Untitled", time: "Edited 5 months ago", category: "blue", type: "design" },
-    { title: "Ecommerce UI Design - Page 1", time: "Edited 5 months ago", category: "purple", type: "prototype" },
-    { title: "Untitled", time: "Edited 5 months ago", category: "purple", type: "design" },
-    { title: "Untitled", time: "Edited 5 months ago", category: "purple", type: "design" },
-    { title: "Untitled", time: "Edited 5 months ago", category: "blue", type: "design" },
-    { title: "BUS BOOKING APP (Community)", time: "Edited 7 months ago", category: "blue", type: "design" },
-    { title: "BUS BOOKING APP - Prototype", time: "Edited 7 months ago", category: "purple", type: "prototype" },
-  ];
+  const router = useRouter();
+  const [files, setFiles] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
+
+  const handleAiGenerate = async () => {
+    if (!aiPrompt) return;
+    setAiLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch("http://localhost:5000/api/ai/generate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ prompt: aiPrompt })
+      });
+      const data = await res.json();
+      if (res.ok && data._id) {
+        router.push(`/canvas/${data._id}`);
+      } else {
+        alert(data.message || "Failed to generate AI layout");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Something went wrong");
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetch("http://localhost:5000/api/files/recent", {
+      headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+    })
+    .then(res => res.json())
+    .then(data => {
+      setFiles(Array.isArray(data) ? data : []);
+      setLoading(false);
+    })
+    .catch(err => {
+      console.error(err);
+      setLoading(false);
+    });
+  }, []);
 
   return (
     <div className="flex-1 w-full max-w-full">
@@ -34,10 +76,17 @@ export default function RecentsPage() {
             <input 
               type="text"
               placeholder="Create a landing page for an AI startup..."
+              value={aiPrompt}
+              onChange={(e) => setAiPrompt(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleAiGenerate()}
               className="w-full bg-background/50 border border-border/50 hover:border-border focus:border-primary focus:ring-1 focus:ring-primary rounded-xl py-3.5 pl-4 pr-32 text-sm outline-none transition-all duration-300"
             />
-            <button className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-2 bg-secondary hover:bg-secondary/80 text-foreground px-4 py-1.5 rounded-lg text-sm font-medium transition-colors">
-              Make it <ArrowRight className="w-3.5 h-3.5" />
+            <button 
+              onClick={handleAiGenerate}
+              disabled={aiLoading}
+              className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-2 bg-secondary hover:bg-secondary/80 text-foreground px-4 py-1.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+            >
+              {aiLoading ? "Generating..." : "Make it"} <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
@@ -64,42 +113,50 @@ export default function RecentsPage() {
         </div>
 
         {/* Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {projects.map((p, i) => (
-            <div key={i} className="group flex flex-col bg-card/20 rounded-xl border border-border/50 overflow-hidden hover:border-border transition-colors cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-primary shadow-sm hover:shadow-md">
-              {/* Preview image */}
-              <div className="aspect-[4/3] bg-gradient-to-br from-secondary/50 to-background flex items-center justify-center p-6 relative overflow-hidden group-hover:scale-[1.02] transition-transform duration-500 ease-out">
-                 <div className="absolute inset-0 bg-background/10 mix-blend-overlay"></div>
-                 {/* Fake UI preview block */}
-                 <div className="w-full h-full bg-background border border-border/50 rounded-lg shadow-sm flex overflow-hidden">
-                    {i % 2 === 0 ? (
-                      <>
-                        <div className="w-1/4 border-r border-border/50 bg-secondary/20 block"></div>
-                        <div className="flex-1 bg-[linear-gradient(to_right,#8882_1px,transparent_1px),linear-gradient(to_bottom,#8882_1px,transparent_1px)] bg-[size:16px_16px]"></div>
-                      </>
-                    ) : (
-                      <div className="w-full h-full bg-secondary/30 flex items-center justify-center">
-                        <div className="w-1/2 h-1/2 bg-background shadow-md rounded border border-border/20"></div>
-                      </div>
-                    )}
-                 </div>
-              </div>
-
-              {/* Footer */}
-              <div className="p-3 bg-card border-t border-border/50 flex items-center gap-3">
-                 <div className={`w-6 h-6 rounded flex items-center justify-center text-white shrink-0 ${p.category === 'blue' ? 'bg-blue-600' : 'bg-purple-600'}`}>
-                   {p.type === 'prototype' ? <MonitorPlay className="w-3.5 h-3.5" /> : <div className="w-2.5 h-2.5 rounded-sm bg-white/80"></div>}
-                 </div>
-                 <div className="min-w-0 flex-1">
-                   <h3 className="text-sm font-semibold text-foreground truncate group-hover:text-primary transition-colors">{p.title}</h3>
-                   <div className="flex items-center gap-2 mt-0.5">
-                     <p className="text-[11px] text-muted-foreground truncate">{p.time}</p>
+        {loading ? (
+          <div className="flex justify-center p-10"><div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" /></div>
+        ) : files.length === 0 ? (
+          <div className="text-center py-20 border border-dashed border-border rounded-xl">
+             <p className="text-muted-foreground">No recent files found. Create one from Drafts & New!</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {files.map((f, i) => (
+              <div onClick={() => router.push(`/canvas/${f._id}`)} key={f._id || i} className="group flex flex-col bg-card/20 rounded-xl border border-border/50 overflow-hidden hover:border-border transition-colors cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-primary shadow-sm hover:shadow-md">
+                {/* Preview image */}
+                <div className="aspect-[4/3] bg-gradient-to-br from-secondary/50 to-background flex items-center justify-center p-6 relative overflow-hidden group-hover:scale-[1.02] transition-transform duration-500 ease-out">
+                   <div className="absolute inset-0 bg-background/10 mix-blend-overlay"></div>
+                   {/* Fake UI preview block */}
+                   <div className="w-full h-full bg-background border border-border/50 rounded-lg shadow-sm flex overflow-hidden">
+                      {i % 2 === 0 ? (
+                        <>
+                          <div className="w-1/4 border-r border-border/50 bg-secondary/20 block"></div>
+                          <div className="flex-1 bg-[linear-gradient(to_right,#8882_1px,transparent_1px),linear-gradient(to_bottom,#8882_1px,transparent_1px)] bg-[size:16px_16px]"></div>
+                        </>
+                      ) : (
+                        <div className="w-full h-full bg-secondary/30 flex items-center justify-center">
+                          <div className="w-1/2 h-1/2 bg-background shadow-md rounded border border-border/20"></div>
+                        </div>
+                      )}
                    </div>
-                 </div>
+                </div>
+
+                {/* Footer */}
+                <div className="p-3 bg-card border-t border-border/50 flex items-center gap-3">
+                   <div className={`w-6 h-6 rounded flex items-center justify-center text-white shrink-0 ${i % 2 === 0 ? 'bg-blue-600' : 'bg-purple-600'}`}>
+                     <FileText className="w-3.5 h-3.5" />
+                   </div>
+                   <div className="min-w-0 flex-1">
+                     <h3 className="text-sm font-semibold text-foreground truncate group-hover:text-primary transition-colors">{f.name}</h3>
+                     <div className="flex items-center gap-2 mt-0.5">
+                       <p className="text-[11px] text-muted-foreground truncate">{f.project?.name || "Workspace"} • Edited {new Date(f.updatedAt).toLocaleDateString()}</p>
+                     </div>
+                   </div>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
       </div>
     </div>

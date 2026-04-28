@@ -10,8 +10,8 @@ owner:{
     required:true,
 },
 members:[{
-    type:mongoose.Schema.Types.ObjectId,
-    ref:"User",
+    user: { type:mongoose.Schema.Types.ObjectId, ref:"User" },
+    role: { type: String, enum: ["viewer", "editor"], default: "viewer" }
 }],
 }
 ,{timestamps:true}

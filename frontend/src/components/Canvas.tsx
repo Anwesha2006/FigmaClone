@@ -5,6 +5,7 @@ import { useCanvasStore } from "@/src/lib/store"
 import { generateId } from "@/src/lib/utils"
 import type { Shape } from "@/src/lib/types"
 import { useAutoSave } from "../hooks/useAutosave"
+import { useCollaboration } from "../hooks/useCollaboration"
 
 interface DragState {
   isDragging: boolean
@@ -26,7 +27,7 @@ interface ResizeState {
 }
 
 
-export function Canvas() {
+export function Canvas({ fileId = "" }: { fileId?: string }) {
   const canvasRef = useRef<HTMLDivElement>(null)
   const {
     shapes,
@@ -41,8 +42,9 @@ export function Canvas() {
     setPanOffset,
     updateShape,
   } = useCanvasStore()
-const fileId = ""  // temporary empty string until you add file routing
+
 const saveStatus = useAutoSave(fileId)
+const { awarenessUsers, setCursorPosition, userRole } = useCollaboration(fileId || "default-room", fileId)
   const [dragState, setDragState] = useState<DragState>({
     isDragging: false,
     startX: 0,
@@ -81,6 +83,12 @@ const saveStatus = useAutoSave(fileId)
   const handleCanvasMouseDown = useCallback(
     (e: React.MouseEvent) => {
       setEditingTextId(null)
+      if (userRole === "viewer") {
+        setIsPanning(true)
+        setPanStart({ x: e.clientX, y: e.clientY })
+        return
+      }
+
       if (activeTool === "move" || e.button === 1) {
         setIsPanning(true)
         setPanStart({ x: e.clientX, y: e.clientY })
@@ -130,21 +138,24 @@ const saveStatus = useAutoSave(fileId)
 
       if (activeTool === "select" || activeTool === "move") {
         selectShape(shape.id)
-        setDragState({
-          isDragging: true,
-          startX: e.clientX,
-          startY: e.clientY,
-          shapeStartX: shape.x,
-          shapeStartY: shape.y,
-        })
+        if (userRole === "editor") {
+          setDragState({
+            isDragging: true,
+            startX: e.clientX,
+            startY: e.clientY,
+            shapeStartX: shape.x,
+            shapeStartY: shape.y,
+          })
+        }
       }
     },
-    [activeTool, selectShape]
+    [activeTool, selectShape, userRole]
   )
 
   const handleResizeMouseDown = useCallback(
     (e: React.MouseEvent, handle: string, shape: Shape) => {
       e.stopPropagation()
+      if (userRole !== "editor") return;
       setResizeState({
         isResizing: true,
         handle,
@@ -161,6 +172,9 @@ const saveStatus = useAutoSave(fileId)
 
   const handleMouseMove = useCallback(
     (e: React.MouseEvent) => {
+      const coords = getCanvasCoordinates(e.clientX, e.clientY)
+      setCursorPosition(coords.x, coords.y)
+
       if (isPanning) {
         const dx = e.clientX - panStart.x
         const dy = e.clientY - panStart.y
@@ -221,6 +235,8 @@ const saveStatus = useAutoSave(fileId)
       resizeShape,
       setPanOffset,
       panOffset,
+      getCanvasCoordinates,
+      setCursorPosition
     ]
   )
 
@@ -234,6 +250,8 @@ const saveStatus = useAutoSave(fileId)
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (userRole !== "editor" && !["h", "H", "v", "V"].includes(e.key)) return;
+
       if (e.key === "Delete" || e.key === "Backspace") {
         if (selectedId) {
           const store = useCanvasStore.getState()
@@ -424,7 +442,7 @@ const saveStatus = useAutoSave(fileId)
                 onMouseDown={(e) => handleShapeMouseDown(e, shape)}
                 onDoubleClick={(e) => {
                   e.stopPropagation()
-                  setEditingTextId(shape.id)
+                  if (userRole === "editor") setEditingTextId(shape.id)
                 }}
               >
                 {isEditing ? (
@@ -581,6 +599,42 @@ const saveStatus = useAutoSave(fileId)
 
           return null
         })}
+
+        {awarenessUsers.map((user) => (
+          <div
+            key={user.clientId}
+            className="absolute pointer-events-none transition-all duration-100 ease-linear"
+            style={{
+              left: user.x,
+              top: user.y,
+              transform: `translate(-2px, -2px)`,
+              zIndex: 9999,
+            }}
+          >
+            <svg
+              width="16"
+              height="20"
+              viewBox="0 0 16 20"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              style={{ filter: "drop-shadow(1px 1px 2px rgba(0,0,0,0.3))" }}
+            >
+              <path
+                d="M1 1L5.58579 19.3431C5.83407 20.3363 7.21852 20.4705 7.66986 19.5168L10.3664 13.82L15.3045 10.1558C16.1415 9.53503 15.9329 8.1691 14.921 7.86548L1 1Z"
+                fill={user.color}
+                stroke="white"
+                strokeWidth="1.5"
+                strokeLinejoin="round"
+              />
+            </svg>
+            <div
+              className="mt-1 rounded-md px-2 py-1 text-[10px] font-medium text-white shadow-sm"
+              style={{ backgroundColor: user.color }}
+            >
+              {user.name}
+            </div>
+          </div>
+        ))}
       </div>
 
       {selectedShape && (
@@ -599,6 +653,13 @@ const saveStatus = useAutoSave(fileId)
     {saveStatus === "error" && "Save failed"}
   </div>
 )}
+
+        {userRole === "viewer" && (
+          <div className="absolute top-4 right-4 rounded-full bg-primary px-4 py-1.5 text-xs font-semibold text-primary-foreground shadow-lg flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-white animate-pulse"></span>
+            View Only Mode
+          </div>
+        )}
     </div>
   )
 }

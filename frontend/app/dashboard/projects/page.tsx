@@ -1,13 +1,31 @@
-import { PlusSquare, FolderOpen, Star, MoreHorizontal, CheckCircle2 } from "lucide-react";
+"use client";
+
+import { PlusSquare, FolderOpen, Star, MoreHorizontal, CheckCircle2, Share2 } from "lucide-react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { ShareDialog } from "@/src/components/ShareDialog";
 
 export default function ProjectsPage() {
-  const folders = [
-    { name: "Website Architecture", files: 12, size: "45 MB", updated: "2 days ago" },
-    { name: "Mobile App Wireframes", files: 24, size: "128 MB", updated: "4 days ago" },
-    { name: "Design System Elements", files: 8, size: "32 MB", updated: "1 week ago" },
-    { name: "Marketing Graphics Q4", files: 15, size: "94 MB", updated: "2 weeks ago" },
-  ];
+  const [projects, setProjects] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [shareDialogTarget, setShareDialogTarget] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("http://localhost:5000/api/projects", {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        setProjects(Array.isArray(data) ? data : []);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error(err);
+        setLoading(false);
+      });
+  }, []);
 
   return (
     <div className="flex-1 w-full max-w-full">
@@ -29,27 +47,39 @@ export default function ProjectsPage() {
         </div>
 
         {/* Folders Loop */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {folders.map((f, i) => (
-            <div key={i} className="group relative rounded-2xl bg-card border border-border/50 p-6 hover:border-primary/40 transition-all duration-300 shadow-sm hover:shadow-lg hover:-translate-y-0.5 cursor-pointer">
-              <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2">
-                 <button className="text-muted-foreground hover:text-foreground p-1"><Star className="w-4 h-4" /></button>
-                 <button className="text-muted-foreground hover:text-foreground p-1"><MoreHorizontal className="w-4 h-4" /></button>
-              </div>
+        {loading ? (
+          <div className="flex justify-center p-10"><div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" /></div>
+        ) : projects.length === 0 ? (
+          <div className="text-center py-20 border border-dashed border-border rounded-xl">
+             <p className="text-muted-foreground">No projects yet. Create your first workspace!</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {projects.map((p, i) => (
+              <div key={p._id || i} className="group relative rounded-2xl bg-card border border-border/50 p-6 hover:border-primary/40 transition-all duration-300 shadow-sm hover:shadow-lg hover:-translate-y-0.5 cursor-pointer">
+                <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2">
+                   <button 
+                     onClick={(e) => { e.stopPropagation(); setShareDialogTarget(p._id); }}
+                     className="text-muted-foreground hover:text-foreground p-1"
+                     title="Share workspace"
+                   ><Share2 className="w-4 h-4" /></button>
+                   <button className="text-muted-foreground hover:text-foreground p-1"><MoreHorizontal className="w-4 h-4" /></button>
+                </div>
 
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 border border-primary/20 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform shadow-sm">
-                <FolderOpen className="w-6 h-6 text-primary" />
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 border border-primary/20 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform shadow-sm">
+                  <FolderOpen className="w-6 h-6 text-primary" />
+                </div>
+                
+                <h3 className="font-semibold text-lg text-foreground mb-1 group-hover:text-primary transition-colors">{p.name}</h3>
+                <div className="flex items-center gap-3 text-xs font-medium text-muted-foreground">
+                   <span>{p.members?.length || 1} members</span>
+                   <span className="w-1 h-1 rounded-full bg-border"></span>
+                   <span>{new Date(p.updatedAt || p.createdAt).toLocaleDateString()}</span>
+                </div>
               </div>
-              
-              <h3 className="font-semibold text-lg text-foreground mb-1 group-hover:text-primary transition-colors">{f.name}</h3>
-              <div className="flex items-center gap-3 text-xs font-medium text-muted-foreground">
-                 <span>{f.files} files</span>
-                 <span className="w-1 h-1 rounded-full bg-border"></span>
-                 <span>{f.updated}</span>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
         <div className="mt-12">
             <h3 className="text-lg font-semibold text-foreground mb-6">Recent Deliverables</h3>
@@ -90,6 +120,14 @@ export default function ProjectsPage() {
         </div>
 
       </div>
+
+      {shareDialogTarget && (
+        <ShareDialog
+          isOpen={true}
+          onClose={() => setShareDialogTarget(null)}
+          projectId={shareDialogTarget}
+        />
+      )}
     </div>
   );
 }
