@@ -2,12 +2,12 @@
 
 import { Mail, Lock, Sparkles, ArrowRight } from "lucide-react";
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL
 
-export default function LoginPage() {
+function SignInInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [formData, setFormData] = useState({ email: "", password: "" });
@@ -236,5 +236,17 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SignInPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center h-screen bg-background">
+        <div className="animate-spin w-12 h-12 border-4 border-primary border-t-transparent rounded-full" />
+      </div>
+    }>
+      <SignInInner />
+    </Suspense>
   );
 }
