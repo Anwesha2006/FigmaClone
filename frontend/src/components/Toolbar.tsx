@@ -19,6 +19,8 @@ import { useCanvasStore } from "@/src/lib/store"
 import type { Tool } from "@/src/lib/types"
 import { cn } from "@/src/lib/utils"
 
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL
+
 interface ToolButtonProps {
   tool: Tool
   icon: React.ReactNode
@@ -88,7 +90,7 @@ export function Toolbar() {
   const handleExport = async (format: string) => {
     try {
       const shapes = useCanvasStore.getState().shapes;
-      const response = await fetch(`http://localhost:5000/api/files/export`, {
+      const response = await fetch(`${BACKEND_URL}/api/files/export`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ canvasData: shapes, format, name: "canvas-export" }),

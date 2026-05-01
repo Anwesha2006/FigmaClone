@@ -4,6 +4,9 @@ import { WebsocketProvider } from 'y-websocket'
 import { useCanvasStore, setYShapesMap } from '@/src/lib/store'
 import type { Shape } from '@/src/lib/types'
 
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL
+const WS_URL = process.env.NEXT_PUBLIC_WS_URL || BACKEND_URL?.replace(/^http/, 'ws')
+
 const cursorColors = ['#f56565', '#ed8936', '#ecc94b', '#48bb78', '#38b2ac', '#4299e1', '#667eea', '#9f7aea', '#ed64a6']
 const randomColor = cursorColors[Math.floor(Math.random() * cursorColors.length)]
 
@@ -16,7 +19,7 @@ export function useCollaboration(roomId: string = 'default-room', fileId?: strin
     // Fetch file role
     // 1. Initialize Yjs Document
     const ydoc = new Y.Doc()
-    const wsProvider = new WebsocketProvider('ws://localhost:5000', roomId, ydoc)
+    const wsProvider = new WebsocketProvider(WS_URL!, roomId, ydoc)
     setProvider(wsProvider)
 
     // 2. Initialize the shared map for shapes
@@ -25,7 +28,7 @@ export function useCollaboration(roomId: string = 'default-room', fileId?: strin
 
     // 3. Fetch file metadata and initial shapes
     if (fileId) {
-      fetch(`http://localhost:5000/api/files/${fileId}`, {
+      fetch(`${BACKEND_URL}/api/files/${fileId}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
       })
       .then(res => res.json())

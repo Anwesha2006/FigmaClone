@@ -1,6 +1,8 @@
 import { useState } from "react"
 import { Copy, Link, UserPlus, X, Globe, User } from "lucide-react"
 
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL
+
 interface ShareDialogProps {
   isOpen: boolean
   onClose: () => void
@@ -24,7 +26,7 @@ export function ShareDialog({ isOpen, onClose, projectId, fileId, currentLinkSha
     setLoading(true)
     setMessage("")
     try {
-      const res = await fetch(`http://localhost:5000/api/projects/${projectId}/invite`, {
+      const res = await fetch(`${BACKEND_URL}/api/projects/${projectId}/invite`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -47,7 +49,7 @@ export function ShareDialog({ isOpen, onClose, projectId, fileId, currentLinkSha
     if (!fileId) return
     setLoading(true)
     try {
-      const res = await fetch(`http://localhost:5000/api/files/${fileId}/share`, {
+      const res = await fetch(`${BACKEND_URL}/api/files/${fileId}/share`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

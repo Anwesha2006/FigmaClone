@@ -15,9 +15,9 @@ const FileSchema = new mongoose.Schema({
         required: true,
     },
     canvasData:{
-        type: Object,
+        type: mongoose.Schema.Types.Mixed,
         required: true,
-        default: {},
+        default: [],
     },
     thumbnail:{
         type: String,
@@ -29,5 +29,6 @@ const FileSchema = new mongoose.Schema({
         role: { type: String, enum: ["viewer", "editor"], default: "viewer" }
     }
 },
+{ timestamps: true }
 );
 module.exports = mongoose.model("File", FileSchema);

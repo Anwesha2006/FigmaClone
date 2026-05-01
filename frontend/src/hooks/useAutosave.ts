@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react"
 import { useCanvasStore } from "@/src/lib/store"
 import type { Shape } from "@/src/lib/types"
 
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL
+
 type SaveStatus = "idle" | "saving" | "saved" | "error"
 
 export function useAutoSave(fileId: string) {
@@ -18,7 +20,7 @@ export function useAutoSave(fileId: string) {
     const fetchProjectId = async () => {
       try {
         const token = localStorage.getItem("token")
-        const response = await fetch(`http://localhost:5000/api/files/${fileId}`, {
+        const response = await fetch(`${BACKEND_URL}/api/files/${fileId}`, {
           headers: {
             ...(token ? { "Authorization": `Bearer ${token}` } : {})
           },
@@ -60,7 +62,7 @@ export function useAutoSave(fileId: string) {
         const token = localStorage.getItem("token")
         
         // Save canvas data
-        const response = await fetch(`http://localhost:5000/api/files/${fileId}/canvas`, {
+        const response = await fetch(`${BACKEND_URL}/api/files/${fileId}/canvas`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
@@ -78,7 +80,7 @@ export function useAutoSave(fileId: string) {
         // Update project's lastModified timestamp
         if (projectIdRef.current) {
           try {
-            await fetch(`http://localhost:5000/api/projects/${projectIdRef.current}`, {
+            await fetch(`${BACKEND_URL}/api/projects/${projectIdRef.current}`, {
               method: "PUT",
               headers: {
                 "Content-Type": "application/json",

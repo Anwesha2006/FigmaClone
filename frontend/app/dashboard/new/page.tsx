@@ -4,6 +4,8 @@ import { Plus, Maximize, Smartphone, Monitor, Code } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL
+
 export default function DraftsPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -14,7 +16,7 @@ export default function DraftsPage() {
       const token = localStorage.getItem("token");
       
       // 1. Get or create a project
-      const projRes = await fetch("http://localhost:5000/api/projects", {
+      const projRes = await fetch(`${BACKEND_URL}/api/projects`, {
         headers: { "Authorization": `Bearer ${token}` }
       });
       let projects = await projRes.json();
@@ -23,7 +25,7 @@ export default function DraftsPage() {
       if (projects && projects.length > 0) {
         projectId = projects[0]._id;
       } else {
-        const createProjRes = await fetch("http://localhost:5000/api/projects", {
+        const createProjRes = await fetch(`${BACKEND_URL}/api/projects`, {
           method: "POST",
           headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
           body: JSON.stringify({ name: "My Workspace" })
@@ -33,7 +35,7 @@ export default function DraftsPage() {
       }
 
       // 2. Create the file
-      const fileRes = await fetch("http://localhost:5000/api/files", {
+      const fileRes = await fetch(`${BACKEND_URL}/api/files`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify({ name: templateName, projectId })

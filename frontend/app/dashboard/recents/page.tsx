@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL
+
 export default function RecentsPage() {
   const router = useRouter();
   const [files, setFiles] = useState<any[]>([]);
@@ -17,7 +19,7 @@ export default function RecentsPage() {
     setAiLoading(true);
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("http://localhost:5000/api/ai/generate", {
+      const res = await fetch(`${BACKEND_URL}/api/ai/generate`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -40,7 +42,7 @@ export default function RecentsPage() {
   };
 
   useEffect(() => {
-    fetch("http://localhost:5000/api/files/recent", {
+    fetch(`${BACKEND_URL}/api/files/recent`, {
       headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
     })
     .then(res => res.json())

@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL
+
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -41,7 +43,7 @@ export default function LoginPage() {
 
     setLoading(true);
     try {
-      const response = await fetch("http://localhost:5000/api/auth/login", {
+      const response = await fetch(`${BACKEND_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
@@ -140,7 +142,7 @@ export default function LoginPage() {
 
           <div className="space-y-6">
             {/* Social Login Provider */}
-            <a href="http://localhost:5000/api/auth/google" className="w-full relative group block">
+            <a href={`${BACKEND_URL}/api/auth/google`} className="w-full relative group block">
               <div className="absolute inset-0 bg-gradient-to-r from-primary/30 to-chart-1/30 rounded-xl blur-md opacity-0 group-hover:opacity-100 transition duration-500"></div>
               <div className="relative flex items-center justify-center gap-3 w-full bg-card hover:bg-muted/40 border border-border text-foreground py-3.5 px-4 rounded-xl font-semibold transition-all duration-200">
                 <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">

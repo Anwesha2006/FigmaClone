@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ShareDialog } from "@/src/components/ShareDialog";
 
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL
+
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -12,7 +14,7 @@ export default function ProjectsPage() {
   const [filter, setFilter] = useState<"all" | "draft" | "published">("all");
 
   useEffect(() => {
-    fetch("http://localhost:5000/api/projects", {
+    fetch(`${BACKEND_URL}/api/projects`, {
       headers: {
         Authorization: `Bearer ${localStorage.getItem("token")}`,
       },
@@ -46,7 +48,7 @@ export default function ProjectsPage() {
   const handlePublish = async (projectId: string) => {
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`http://localhost:5000/api/projects/${projectId}/status`, {
+      const res = await fetch(`${BACKEND_URL}/api/projects/${projectId}/status`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

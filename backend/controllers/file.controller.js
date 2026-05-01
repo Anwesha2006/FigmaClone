@@ -112,7 +112,8 @@ exports.saveCanvasData=async(req,res)=>{
             return res.status(404).json({message:"File not found"});
         }
         
-        file.canvasData=req.body.canvasData;
+        file.canvasData = req.body.canvasData;
+        file.markModified('canvasData');
         await file.save();
         console.log("Canvas data saved successfully for file:", id);
         return res.status(200).json({message:"Canvas data saved successfully"});
