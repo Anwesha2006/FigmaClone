@@ -9,6 +9,32 @@ export function useAutoSave(fileId: string) {
   const [status, setStatus] = useState<SaveStatus>("idle")
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isFirstRender = useRef(true)
+  const projectIdRef = useRef<string | null>(null)
+
+  // Fetch project ID on mount
+  useEffect(() => {
+    if (!fileId) return
+    
+    const fetchProjectId = async () => {
+      try {
+        const token = localStorage.getItem("token")
+        const response = await fetch(`http://localhost:5000/api/files/${fileId}`, {
+          headers: {
+            ...(token ? { "Authorization": `Bearer ${token}` } : {})
+          },
+        })
+        
+        if (response.ok) {
+          const data = await response.json()
+          projectIdRef.current = data.project
+        }
+      } catch (err) {
+        console.error("Failed to fetch project ID:", err)
+      }
+    }
+    
+    fetchProjectId()
+  }, [fileId])
 
   useEffect(() => {
     // Skip saving on the very first render
@@ -32,6 +58,8 @@ export function useAutoSave(fileId: string) {
     debounceTimer.current = setTimeout(async () => {
       try {
         const token = localStorage.getItem("token")
+        
+        // Save canvas data
         const response = await fetch(`http://localhost:5000/api/files/${fileId}/canvas`, {
           method: "PUT",
           headers: {
@@ -45,6 +73,23 @@ export function useAutoSave(fileId: string) {
           const errorData = await response.json().catch(() => ({}));
           console.error("Save failed with status:", response.status, errorData);
           throw new Error(`Failed to save: ${response.status}`);
+        }
+
+        // Update project's lastModified timestamp
+        if (projectIdRef.current) {
+          try {
+            await fetch(`http://localhost:5000/api/projects/${projectIdRef.current}`, {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+                ...(token ? { "Authorization": `Bearer ${token}` } : {})
+              },
+              body: JSON.stringify({}),
+            })
+          } catch (err) {
+            console.error("Failed to update project lastModified:", err)
+            // Don't fail the save if project update fails
+          }
         }
 
         setStatus("saved")

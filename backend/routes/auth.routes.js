@@ -13,12 +13,55 @@ router.get(
 router.get(
   "/google/callback",
   passport.authenticate("google", {
-    failureRedirect: "/login",
+    failureRedirect: "http://localhost:3000/login?error=auth_failed",
+    session: true
   }),
-  (req, res) => {
-    res.redirect("http://localhost:3000/dashboard");
+  async (req, res) => {
+    try {
+      if (!req.user) {
+        console.error("User not found after authentication");
+        return res.redirect("http://localhost:3000/login?error=user_not_found");
+      }
+
+      const jwt = require("jsonwebtoken");
+      const token = jwt.sign(
+        { id: req.user._id },
+        process.env.JWT_SECRET,
+        { expiresIn: "1d" }
+      );
+
+      const user = {
+        id: req.user._id,
+        name: req.user.name,
+        email: req.user.email,
+        avatar: req.user.avatar,
+        firstName: req.user.name.split(' ')[0],
+        lastName: req.user.name.split(' ')[1] || ''
+      };
+
+      console.log("✅ OAuth successful for user:", user.email);
+
+      // Store in session for reference
+      req.session.token = token;
+      req.session.user = user;
+
+      // Redirect to frontend with token and user data
+      const redirectUrl = `http://localhost:3000/dashboard/oauth-callback?token=${encodeURIComponent(token)}&user=${encodeURIComponent(JSON.stringify(user))}`;
+      res.redirect(redirectUrl);
+    } catch (err) {
+      console.error("Google callback error:", err);
+      res.redirect("http://localhost:3000/login?error=auth_error");
+    }
   }
 );
+
+// 🔹 Session info endpoint
+router.get("/me", (req, res) => {
+  if (!req.user) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+  res.json({ user: req.user });
+});
 
 // 🔹 Logout
 router.get("/logout", (req, res) => {

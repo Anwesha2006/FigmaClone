@@ -83,3 +83,44 @@ exports.inviteUser=async(req,res)=>{
         return res.status(500).json({error:"Something went wrong"});
     }
 }
+
+exports.saveProject=async(req,res)=>{
+    try{
+        const project = await Project.findById(req.params.id);
+        if(!project) {
+            return res.status(404).json({error:"Project not found"});
+        }
+        if(project.owner.toString() !== req.user.id) {
+            return res.status(403).json({error:"Only project owner can save the project"});
+        }
+        project.lastModified = new Date();
+        if(req.body.name) project.name = req.body.name;
+        await project.save();
+        return res.json(project);
+    } catch(err) {
+        console.error("saveProject error", err);
+        return res.status(500).json({error:"Something went wrong"});
+    }
+}
+
+exports.updateProjectStatus=async(req,res)=>{
+    try{
+        const { status } = req.body;
+        if(!["draft", "published"].includes(status)) {
+            return res.status(400).json({error:"Invalid status. Must be 'draft' or 'published'"});
+        }
+        const project = await Project.findById(req.params.id);
+        if(!project) {
+            return res.status(404).json({error:"Project not found"});
+        }
+        if(project.owner.toString() !== req.user.id) {
+            return res.status(403).json({error:"Only project owner can update project status"});
+        }
+        project.status = status;
+        await project.save();
+        return res.json(project);
+    } catch(err) {
+        console.error("updateProjectStatus error", err);
+        return res.status(500).json({error:"Something went wrong"});
+    }
+}
