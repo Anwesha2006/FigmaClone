@@ -20,7 +20,7 @@ router.get(
     try {
       if (!req.user) {
         console.error("User not found after authentication");
-        return res.redirect("http://localhost:3000/login?error=user_not_found");
+        return res.redirect("https://figmaclone-delta.vercel.app/dashboard");
       }
 
       const jwt = require("jsonwebtoken");
