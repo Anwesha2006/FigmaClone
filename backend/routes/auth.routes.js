@@ -18,18 +18,25 @@ router.get(
   }),
   async (req, res) => {
     try {
+      console.log("USER:", req.user);
       if (!req.user) {
         console.error("User not found after authentication");
         return res.redirect("https://figmaclone-delta.vercel.app/dashboard");
       }
 
       const jwt = require("jsonwebtoken");
+      console.log("JWT_SECRET:", process.env.JWT_SECRET);
       const token = jwt.sign(
         { id: req.user._id },
         process.env.JWT_SECRET,
         { expiresIn: "1d" }
       );
-
+     console.log("token created:", token);
+     return res.redirect("https://figmaclone-delta.vercel.app/dashboard");
+      } catch (err) {
+      console.error("Google callback error:", err);
+      return res.send("server error");
+    }
       const user = {
         id: req.user._id,
         name: req.user.name,
