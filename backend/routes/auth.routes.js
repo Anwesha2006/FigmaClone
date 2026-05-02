@@ -31,12 +31,8 @@ router.get(
         process.env.JWT_SECRET,
         { expiresIn: "1d" }
       );
-     console.log("token created:", token);
-     return res.redirect("https://figmaclone-delta.vercel.app/dashboard");
-      } catch (err) {
-      console.error("Google callback error:", err);
-      return res.send("server error");
-    }
+      console.log("token created:", token);
+
       const user = {
         id: req.user._id,
         name: req.user.name,
@@ -73,7 +69,7 @@ router.get("/me", (req, res) => {
 // 🔹 Logout
 router.get("/logout", (req, res) => {
   req.logout(() => {
-    res.redirect("/");
+    res.redirect("http://localhost:3000/login");
   });
 });
 

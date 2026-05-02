@@ -8,7 +8,7 @@ router.post("/", protect, ProjectController.createProject);
 
 router.get("/", protect, ProjectController.getMyProjects);
 
-router.get("/:id", protect, ProjectController.renameProject);
+router.patch("/:id", protect, ProjectController.renameProject);
 
 router.put("/:id", protect, ProjectController.saveProject);
 

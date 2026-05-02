@@ -8,7 +8,7 @@ router.post("/", protect, FileController.createFile);
 
 router.get("/recent", protect, FileController.getMyFiles);
 
-router.get("/", protect, FileController.getAllFiles);
+router.get("/:projectId", protect, FileController.getAllFiles);
 
 router.get("/:id", FileController.getFileById);
 
